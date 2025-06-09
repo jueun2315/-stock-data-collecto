@@ -41,6 +41,19 @@ def get_stock_info(code):
         else:
             stock_shares = '정보없음'
 
+        # 전날 종가와 현재가격 가져오기
+        url = f'https://finance.naver.com/item/sise.naver?code={code}'
+        response = requests.get(url)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # 전날 종가 가져오기
+        prev_close = soup.select_one('#_prev_close')
+        prev_close = prev_close.text.strip() if prev_close else '정보없음'
+        
+        # 현재가격 가져오기
+        current_price = soup.select_one('#_nowVal')
+        current_price = current_price.text.strip() if current_price else '정보없음'
+
         # 컨센서스 정보 가져오기
         table = soup.select_one('table.tb_type1.tb_num')
         if not table:
@@ -87,6 +100,8 @@ def get_stock_info(code):
         return {
             '업종': industry,
             '종목명': stock_name,
+            '전날종가': prev_close,
+            '현재가격': current_price,
             '주식수': stock_shares,
             '2025E 영업이익': profit_data.get('2025E', '정보없음'),
             '2025E ROE': roe_data.get('2025E', '정보없음'),
