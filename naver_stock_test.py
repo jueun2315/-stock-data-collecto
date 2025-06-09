@@ -113,32 +113,53 @@ def get_stock_consensus(code):
     :param code: 종목 코드 (예: '005930' for 삼성전자)
     :return: 컨센서스 정보를 담은 딕셔너리
     """
+    print(f"\n[DEBUG] 종목 {code} 처리 시작 - {datetime.now()}")
     url = f"https://finance.naver.com/item/main.naver?code={code}"
     
-    # 웹 페이지 가져오기
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36'
-    }
-    response = requests.get(url, headers=headers)
-    response.encoding = 'euc-kr'
-    
-    # HTML 파싱
-    soup = BeautifulSoup(response.text, 'html.parser')
-    
-    try:
-        # 종목명
-        stock_name = soup.select_one('div.wrap_company h2').text.strip()
-        
-        # 컨센서스 테이블 찾기
-        consensus_table = soup.select('div.cop_analysis table')
-        
-        # 연간 실적 컨센서스 찾기
-        annual_data = {}
-        if consensus_table:
+    # 최대 3번 시도
+    for attempt in range(3):
+        try:
+            print(f"[DEBUG] 시도 {attempt + 1}/3: {code} - {datetime.now()}")
+            
+            # 웹 페이지 가져오기
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36'
+            }
+            print(f"[DEBUG] {code} - HTTP 요청 시작 - {datetime.now()}")
+            # 타임아웃 설정 추가 (10초)
+            response = requests.get(url, headers=headers, timeout=10)
+            print(f"[DEBUG] {code} - HTTP 응답 받음 (상태 코드: {response.status_code}) - {datetime.now()}")
+            
+            response.encoding = 'euc-kr'
+            
+            # HTML 파싱
+            print(f"[DEBUG] {code} - HTML 파싱 시작 - {datetime.now()}")
+            soup = BeautifulSoup(response.text, 'html.parser')
+            print(f"[DEBUG] {code} - HTML 파싱 완료 - {datetime.now()}")
+            
+            # 종목명
+            stock_name = soup.select_one('div.wrap_company h2')
+            if not stock_name:
+                raise Exception("종목명을 찾을 수 없습니다")
+            stock_name = stock_name.text.strip()
+            print(f"[DEBUG] {code} - 종목명 찾음: {stock_name} - {datetime.now()}")
+            
+            # 컨센서스 테이블 찾기
+            consensus_table = soup.select('div.cop_analysis table')
+            if not consensus_table:
+                raise Exception("컨센서스 테이블을 찾을 수 없습니다")
+            print(f"[DEBUG] {code} - 컨센서스 테이블 찾음 - {datetime.now()}")
+            
+            # 연간 실적 컨센서스 찾기
+            annual_data = {}
             rows = consensus_table[0].select('tr')
+            found_profit_row = False
+            
+            print(f"[DEBUG] {code} - 영업이익 데이터 검색 시작 - {datetime.now()}")
             for row in rows:
                 th = row.select_one('th')
                 if th and '영업이익' in th.text:
+                    found_profit_row = True
                     tds = row.select('td')
                     for i, td in enumerate(tds):
                         if td.text.strip():
@@ -146,51 +167,83 @@ def get_stock_consensus(code):
                             # 2025년 이후 데이터만 저장
                             if year >= 2025:
                                 value = clean_number(td.text)
-                                if value != "N/A":
-                                    annual_data[str(year)] = value
-                                else:
-                                    annual_data[str(year)] = "N/A"
-        
-        return {
-            '종목코드': code,
-            '종목명': stock_name,
-            '연간 예상 영업이익': annual_data
-        }
-        
-    except Exception as e:
-        print(f"데이터 추출 중 오류 발생: {str(e)}")
-        return None
+                                annual_data[str(year)] = value
+                                print(f"[DEBUG] {code} - {year}년 영업이익: {value} - {datetime.now()}")
+            
+            if not found_profit_row:
+                raise Exception("영업이익 데이터를 찾을 수 없습니다")
+            
+            if not annual_data:
+                raise Exception("2025년 이후 데이터가 없습니다")
+            
+            print(f"[DEBUG] {code} - 데이터 수집 성공 - {datetime.now()}")
+            return {
+                '종목코드': code,
+                '종목명': stock_name,
+                '연간 예상 영업이익': annual_data
+            }
+            
+        except Exception as e:
+            print(f"[ERROR] {code} - 에러 발생: {str(e)} - {datetime.now()}")
+            if attempt < 2:  # 마지막 시도가 아니면 재시도
+                print(f"[DEBUG] {code} - 3초 후 재시도 - {datetime.now()}")
+                time.sleep(3)
+            else:
+                print(f"[ERROR] {code} - 최대 시도 횟수 초과 - {datetime.now()}")
+                return None
+    
+    return None
 
 def save_to_csv(stocks_data, filename):
     """
-    주식 데이터를 CSV 파일로 저장 (백업용)
+    주식 데이터를 CSV 파일로 저장
     """
-    # 헤더 생성 (연도 찾기)
-    all_years = set()
-    for stock in stocks_data:
-        all_years.update(stock['연간 예상 영업이익'].keys())
-    years = sorted(list(all_years))
+    print(f"\n[DEBUG] CSV 저장 시작 - {datetime.now()}")
     
-    # CSV 파일 작성
-    with open(filename, 'w', newline='', encoding='utf-8-sig') as f:
-        writer = csv.writer(f)
-        
-        # 헤더 작성
-        header = ['종목코드', '종목명'] + [f'{year}년 예상영업이익(억원)' for year in years]
-        writer.writerow(header)
-        
-        # 데이터 작성
+    if not stocks_data:
+        print("[ERROR] 저장할 데이터가 없습니다")
+        return
+    
+    try:
+        # 헤더 생성 (연도 찾기)
+        all_years = set()
         for stock in stocks_data:
-            row = [
-                stock['종목코드'],
-                stock['종목명']
-            ]
-            for year in years:
-                value = stock['연간 예상 영업이익'].get(str(year), 'N/A')
-                if value != 'N/A':
-                    value = format(int(value), ',')  # 천단위 쉼표 추가
-                row.append(value)
-            writer.writerow(row)
+            all_years.update(stock['연간 예상 영업이익'].keys())
+        years = sorted(list(all_years))
+        
+        if not years:
+            print("[ERROR] 연도 데이터가 없습니다")
+            return
+        
+        print(f"[DEBUG] 찾은 연도: {years} - {datetime.now()}")
+        
+        # CSV 파일 작성
+        with open(filename, 'w', newline='', encoding='utf-8-sig') as f:
+            writer = csv.writer(f)
+            
+            # 헤더 작성
+            header = ['종목코드', '종목명'] + [f'{year}년 예상영업이익(억원)' for year in years]
+            writer.writerow(header)
+            print(f"[DEBUG] CSV 헤더 작성 완료 - {datetime.now()}")
+            
+            # 데이터 작성
+            for stock in stocks_data:
+                row = [
+                    stock['종목코드'],
+                    stock['종목명']
+                ]
+                for year in years:
+                    value = stock['연간 예상 영업이익'].get(str(year), 'N/A')
+                    if value != 'N/A':
+                        value = format(int(value), ',')  # 천단위 쉼표 추가
+                    row.append(value)
+                writer.writerow(row)
+                print(f"[DEBUG] {stock['종목명']} 데이터 작성 완료 - {datetime.now()}")
+        
+        print(f"\n[SUCCESS] 데이터가 {filename} 파일로 저장되었습니다 - {datetime.now()}")
+    
+    except Exception as e:
+        print(f"[ERROR] 파일 저장 중 에러 발생: {str(e)} - {datetime.now()}")
 
 def update_data():
     """데이터 수집 및 업데이트"""
