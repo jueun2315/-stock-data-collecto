@@ -78,8 +78,8 @@ def get_stock_consensus(code):
                     for i, td in enumerate(tds):
                         if td.text.strip():
                             year = 2023 + i  # 첫 번째 열이 2023년
-                            # 2025년 이후 데이터만 저장
-                            if year >= 2025:
+                            # 2023년부터 2027년까지만 저장
+                            if 2023 <= year <= 2027:
                                 value = clean_number(td.text)
                                 annual_data[str(year)] = value
                                 print(f"[DEBUG] {code} - {year}년 영업이익: {value} - {datetime.now()}")
@@ -88,7 +88,7 @@ def get_stock_consensus(code):
                 raise Exception("영업이익 데이터를 찾을 수 없습니다")
             
             if not annual_data:
-                raise Exception("2025년 이후 데이터가 없습니다")
+                raise Exception("데이터가 없습니다")
             
             print(f"[DEBUG] {code} - 데이터 수집 성공 - {datetime.now()}")
             return {
