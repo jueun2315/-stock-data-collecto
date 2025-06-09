@@ -2,8 +2,13 @@ name: Update Stock Data
 
 on:
   schedule:
-    - cron: '0 * * * *'  # 매시 정각에 실행
+    - cron: '* * * * *'  # 매분 실행
   workflow_dispatch:  # 수동 실행 옵션
+
+# GitHub Actions 권한 설정
+permissions:
+  contents: write
+  pull-requests: write
 
 # 동시 실행 방지 설정
 concurrency:
