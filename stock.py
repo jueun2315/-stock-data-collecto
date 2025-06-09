@@ -3,6 +3,20 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import time
 
+def convert_to_won(value):
+    try:
+        # 쉼표 제거 후 숫자만 추출
+        number = value.replace(',', '')
+        if number == '-' or number == '':
+            return '정보없음'
+        
+        # 숫자로 변환하여 억 단위를 원 단위로 변경 (1억 = 100,000,000원)
+        won_value = float(number) * 100000000
+        # 천 단위 쉼표 추가
+        return format(int(won_value), ',')
+    except:
+        return value
+
 def get_stock_info(code):
     try:
         # 기본 정보 (종목명, 주식수, 업종) 가져오기
@@ -16,7 +30,7 @@ def get_stock_info(code):
         # 업종 정보 가져오기
         industry_info = soup.select_one('div.trade_compare > h4 > em')
         if industry_info:
-            industry = industry_info.text.strip().split(' ')[1]  # "업종명 업종" 형식에서 업종명만 추출
+            industry = industry_info.text.strip().split(' ')[1]
         else:
             industry = '업종없음'
         
@@ -46,9 +60,9 @@ def get_stock_info(code):
             if '영업이익' in th.text:
                 tds = row.select('td')
                 if len(tds) >= 4:
-                    profit_data['2025E'] = tds[1].text.strip()
-                    profit_data['2026E'] = tds[2].text.strip()
-                    profit_data['2027E'] = tds[3].text.strip()
+                    profit_data['2025E'] = convert_to_won(tds[1].text.strip())
+                    profit_data['2026E'] = convert_to_won(tds[2].text.strip())
+                    profit_data['2027E'] = convert_to_won(tds[3].text.strip())
             
             if 'ROE' in th.text:
                 tds = row.select('td')
