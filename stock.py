@@ -106,14 +106,14 @@ def get_stock_info(code):
             '2025E 영업이익': profit_data.get('2025E', '정보없음'),
             '2025E ROE': roe_data.get('2025E', '정보없음'),
             '2025E PER': per_data.get('2025E', '정보없음'),
-            '2025E 순부채비율': debt_ratio_data.get('2025E', '정보없음'),
             '2026E 영업이익': profit_data.get('2026E', '정보없음'),
             '2026E ROE': roe_data.get('2026E', '정보없음'),
             '2026E PER': per_data.get('2026E', '정보없음'),
-            '2026E 순부채비율': debt_ratio_data.get('2026E', '정보없음'),
             '2027E 영업이익': profit_data.get('2027E', '정보없음'),
             '2027E ROE': roe_data.get('2027E', '정보없음'),
-            '2027E PER': per_data.get('2027E', '정보없음')
+            '2027E PER': per_data.get('2027E', '정보없음'),
+            '2025E 순부채비율': debt_ratio_data.get('2025E', '정보없음'),
+            '2026E 순부채비율': debt_ratio_data.get('2026E', '정보없음')
         }
     
     except Exception as e:
