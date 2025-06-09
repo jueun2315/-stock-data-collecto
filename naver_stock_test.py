@@ -16,12 +16,17 @@ def clean_number(text):
         return str(int(float(number) * 10000))  # 억원 단위로 변환
     return "N/A"
 
+def format_stock_code(code):
+    """종목코드를 6자리로 포맷팅"""
+    return str(code).zfill(6)
+
 def get_stock_consensus(code):
     """
     네이버 금융에서 기업 실적 컨센서스 정보를 가져오는 함수
     :param code: 종목 코드 (예: '005930' for 삼성전자)
     :return: 컨센서스 정보를 담은 딕셔너리
     """
+    code = format_stock_code(code)  # 종목코드 6자리로 통일
     print(f"\n[DEBUG] 종목 {code} 처리 시작 - {datetime.now()}")
     url = f"https://finance.naver.com/item/main.naver?code={code}"
     
@@ -138,7 +143,7 @@ def save_to_csv(stocks_data, filename):
             # 데이터 작성
             for stock in stocks_data:
                 row = [
-                    stock['종목코드'],
+                    format_stock_code(stock['종목코드']),  # 종목코드 6자리로 통일
                     stock['종목명']
                 ]
                 for year in years:
