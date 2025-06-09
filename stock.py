@@ -34,6 +34,7 @@ def get_stock_info(code):
         profit_data = {}
         roe_data = {}
         per_data = {}
+        debt_ratio_data = {}  # 순부채비율 데이터 추가
         
         for row in rows:
             th = row.select_one('th')
@@ -60,15 +61,23 @@ def get_stock_info(code):
                     per_data['2025E'] = tds[1].text.strip()
                     per_data['2026E'] = tds[2].text.strip()
                     per_data['2027E'] = tds[3].text.strip()
+            
+            if '순부채비율' in th.text:  # 순부채비율 데이터 추출
+                tds = row.select('td')
+                if len(tds) >= 4:
+                    debt_ratio_data['2025E'] = tds[1].text.strip()
+                    debt_ratio_data['2026E'] = tds[2].text.strip()
 
         return {
             '종목명': f"{stock_name} ({stock_shares})",
             '2025E 영업이익': profit_data.get('2025E', '정보없음'),
             '2025E ROE': roe_data.get('2025E', '정보없음'),
             '2025E PER': per_data.get('2025E', '정보없음'),
+            '2025E 순부채비율': debt_ratio_data.get('2025E', '정보없음'),
             '2026E 영업이익': profit_data.get('2026E', '정보없음'),
             '2026E ROE': roe_data.get('2026E', '정보없음'),
             '2026E PER': per_data.get('2026E', '정보없음'),
+            '2026E 순부채비율': debt_ratio_data.get('2026E', '정보없음'),
             '2027E 영업이익': profit_data.get('2027E', '정보없음'),
             '2027E ROE': roe_data.get('2027E', '정보없음'),
             '2027E PER': per_data.get('2027E', '정보없음')
