@@ -71,7 +71,9 @@ def get_stock_info(code):
                     debt_ratio_data['2026E'] = tds[2].text.strip()
 
         return {
-            '종목명': f"[{industry}] {stock_name} ({stock_shares})",
+            '업종': industry,
+            '종목명': stock_name,
+            '주식수': stock_shares,
             '2025E 영업이익': profit_data.get('2025E', '정보없음'),
             '2025E ROE': roe_data.get('2025E', '정보없음'),
             '2025E PER': per_data.get('2025E', '정보없음'),
