@@ -5,6 +5,11 @@ on:
     - cron: '0 * * * *'  # 매시 정각에 실행
   workflow_dispatch:  # 수동 실행 옵션
 
+# 동시 실행 방지 설정
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
 jobs:
   update:
     runs-on: ubuntu-latest
