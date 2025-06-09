@@ -2,7 +2,7 @@ name: Update Stock Data
 
 on:
   schedule:
-    - cron: '* * * * *'  # 매분 실행
+    - cron: '*/10 * * * *'  # 10분마다 실행
   workflow_dispatch:  # 수동 실행 옵션
 
 # GitHub Actions 권한 설정
