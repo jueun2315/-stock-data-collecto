@@ -16,30 +16,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  update:
+  update-stock-data:
     runs-on: ubuntu-latest
-    timeout-minutes: 5  # 최대 5분 후 타임아웃
-
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas requests beautifulsoup4
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
+      - name: Run stock data collector
+        run: python stock.py
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install requests beautifulsoup4
-
-    - name: Run update script
-      run: python naver_stock_test.py
-      timeout-minutes: 3  # 스크립트 실행은 최대 3분
-
-    - name: Commit and push if changed
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add stock_consensus.csv
-        git diff --quiet && git diff --staged --quiet || (git commit -m "Update stock data $(date '+%Y-%m-%d %H:%M:%S')" && git push) 
+      - name: Commit and push if changed
+        run: |
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git add -A
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update stock data" && git push) 
