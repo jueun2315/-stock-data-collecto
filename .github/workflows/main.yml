@@ -1,0 +1,35 @@
+name: Update Stock Data
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # 매시 정각에 실행
+  workflow_dispatch:  # 수동 실행 옵션
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5  # 최대 5분 후 타임아웃
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests beautifulsoup4
+
+    - name: Run update script
+      run: python naver_stock_test.py
+      timeout-minutes: 3  # 스크립트 실행은 최대 3분
+
+    - name: Commit and push if changed
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add stock_consensus.csv
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Update stock data $(date '+%Y-%m-%d %H:%M:%S')" && git push) 
