@@ -5,13 +5,20 @@ import time
 
 def get_stock_info(code):
     try:
-        # 기본 정보 (종목명, 주식수) 가져오기
+        # 기본 정보 (종목명, 주식수, 업종) 가져오기
         url = f'https://finance.naver.com/item/main.naver?code={code}'
         response = requests.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
         
         stock_name = soup.select_one('div.wrap_company h2 a')
         stock_name = stock_name.text if stock_name else '정보없음'
+        
+        # 업종 정보 가져오기
+        industry_info = soup.select_one('div.trade_compare > h4 > em')
+        if industry_info:
+            industry = industry_info.text.strip().split(' ')[1]  # "업종명 업종" 형식에서 업종명만 추출
+        else:
+            industry = '업종없음'
         
         # 주식수 가져오기
         stock_shares = soup.select_one('table.tb_type1 td:contains("상장주식수")')
@@ -21,11 +28,6 @@ def get_stock_info(code):
             stock_shares = '정보없음'
 
         # 컨센서스 정보 가져오기
-        url = f'https://finance.naver.com/item/main.naver?code={code}'
-        response = requests.get(url)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # 영업이익 데이터 추출
         table = soup.select_one('table.tb_type1.tb_num')
         if not table:
             return None
@@ -34,7 +36,7 @@ def get_stock_info(code):
         profit_data = {}
         roe_data = {}
         per_data = {}
-        debt_ratio_data = {}  # 순부채비율 데이터 추가
+        debt_ratio_data = {}
         
         for row in rows:
             th = row.select_one('th')
@@ -43,7 +45,7 @@ def get_stock_info(code):
                 
             if '영업이익' in th.text:
                 tds = row.select('td')
-                if len(tds) >= 4:  # 2025-2027년 데이터
+                if len(tds) >= 4:
                     profit_data['2025E'] = tds[1].text.strip()
                     profit_data['2026E'] = tds[2].text.strip()
                     profit_data['2027E'] = tds[3].text.strip()
@@ -62,14 +64,14 @@ def get_stock_info(code):
                     per_data['2026E'] = tds[2].text.strip()
                     per_data['2027E'] = tds[3].text.strip()
             
-            if '순부채비율' in th.text:  # 순부채비율 데이터 추출
+            if '순부채비율' in th.text:
                 tds = row.select('td')
                 if len(tds) >= 4:
                     debt_ratio_data['2025E'] = tds[1].text.strip()
                     debt_ratio_data['2026E'] = tds[2].text.strip()
 
         return {
-            '종목명': f"{stock_name} ({stock_shares})",
+            '종목명': f"[{industry}] {stock_name} ({stock_shares})",
             '2025E 영업이익': profit_data.get('2025E', '정보없음'),
             '2025E ROE': roe_data.get('2025E', '정보없음'),
             '2025E PER': per_data.get('2025E', '정보없음'),
